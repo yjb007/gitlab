@@ -1,0 +1,132 @@
+#!/usr/bin/python2.7
+# encoding: utf-8
+import subprocess
+import re
+import requests
+import datetime
+import json
+import os
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
+#tag = 0
+issuenum = ""
+
+def check_issue_state(groupname,projectname,issuenum):
+    global tmptag
+
+    url = 'https://git.i-counting.cn/api/v4/groups?private_token=dx5J314L3-35ZSETkC71&per_page=50&search={0}'.format(groupname)
+    r = requests.get(url)
+    data = r.json()
+    for i in data:
+        if i[u'path'] == groupname:
+            ##print i[u'name'],i[u'id']
+            groupid = i[u'id']
+
+    url2 = 'https://git.i-counting.cn/api/v4/groups/{0}/projects?private_token=dx5J314L3-35ZSETkC71&per_page=50&simple=true&search={1}'.format(groupid,projectname)
+    r2 = requests.get(url2)
+    data2 = r2.json()
+    for j in data2:
+        if j[u'name'] == projectname:
+            ##print j[u'name'],j[u'id']
+            projectid = j[u'id']
+
+
+    url3 = 'https://git.i-counting.cn/api/v4/projects/{0}/issues?iids={1}&private_token=dx5J314L3-35ZSETkC71'.format(projectid,issuenum)
+    r3 = requests.get(url3)
+    data3 = r3.json()
+    if data3 == []:
+        tmptag = 2
+        print ("[git-hook] Begin check state of issue #{0} [opened or closed or exist]".format(issuenum))
+        print ("[git-hook] Your commit message related to issue #{0} is not exist.".format(issuenum))
+        ##print "tmptag from check_issue_state:{0}".format(tmptag)    
+    else:
+        for k in data3:
+            ##print k[u'web_url']
+            ##print k[u'state']
+            ##print k[u'description']
+            state = k[u'state']
+            ##print "issue state is {0}".format(state)
+            if state == "opened":
+                tmptag = 1
+                ##print "Commit Successful"
+                ##print "tmptag from check_issue_state:{0}".format(tmptag)
+            else:
+                tmptag = 2
+                print ("[git-hook] Begin check state of issue #{0} [opened or closed or exist]".format(issuenum))
+                print ("[git-hook] Your commit message related to issue #{0} was closed.".format(issuenum))
+                ##print "tmptag from check_issue_state:{0}".format(tmptag)
+
+               
+                
+def main():
+    input  = sys.stdin.read()
+    oldrev, newrev, refname = input.split(" ")
+    separator = "----****----"
+    
+    branch = refname.strip('\n').split("/")[2]
+
+    proc = subprocess.Popen(["git", "log", "--format=%H%n%ci%n%s%b%n" + separator, oldrev + ".." +  newrev], stdout=subprocess.PIPE)
+    message = proc.stdout.read()
+    commit_list = message.strip().split(separator)[:-1] #discard the last line
+
+    ##print "Parsing all commit message:"
+    ##print message
+    print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+    if commit_list == []:
+        tag = 1
+    elif branch == 'master':
+        tag = 1
+    else:
+        for commit in commit_list:
+            line_list = commit.strip().split("\n")
+            hash = line_list[0]
+            date = line_list[1]
+            content = " ".join(line_list[2:])
+            if re.findall("(^Merge\s+(remote-tracking\s+)?branch{1})(.*)", content): #check for keyword
+                tag = 1
+                ##print "Merge Successful"
+            elif re.findall("(^((\[feat\]|\[fix\]|\[docs\]|\[style\]|\[refactor\]|\[test\]|\[chore\]).*){1}((#\d+)(\s.*)*)+)", content): #check for keyword
+                repopath = os.getcwd()
+                groupname = re.split(r'[/]', repopath)[-2]
+                projectname = re.split(r'[/]', repopath)[-1].split(".git")[0]
+                issuenum = re.match(r'^(.*?)(#\d+)(.*?)$', content).groups()[1]
+                issuenum = re.split(r'[#]', issuenum)[1]
+                check_issue_state(groupname,projectname,issuenum)
+                tag = tmptag
+                if tag == 2:
+                    print ("[git-hook] Your git commit message was rejected.")
+                    print ("[git-hook] Please check the commit message: {0}".format(content))
+                    break 
+            else:
+                tag = 2
+                print ("[git-hook] Your git commit message was format error.")
+                print ("[git-hook] Please check the commit message: {0}".format(content))
+                break            
+
+            
+    ##print "current tag:{0}".format(tag)
+
+    if tag == 2:
+        print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print ("")
+        print ("Parsing all commit message:")
+        print ("----------------------------------------------------------------------------")
+        print (message)
+        print ("[git-hook] Please see the issue reference of git commit message. https://git.i-counting.cn/common/knowledge-sharing/wikis/%E4%BB%A3%E7%A0%81%E6%8F%90%E4%BA%A4commit%20message%E8%A7%84%E8%8C%83")
+        print ("Please hook a trac ticket when commiting the source code!!!" )
+        print ("Use this command to change commit message (one commit at a time): ")
+        print ("1. run: git rebase --interactive {0}".format(oldrev))
+        print ("2. In the default editor, modify 'pick' to 'edit' in the line whose commit you want to modify")
+        print ("3. run: git commit --amend")
+        print ("4. modify the commit message")
+        print ("5. run: git rebase --continue")
+        print ("6. remember to add the ticket number next time!")
+        print ("reference: http://stackoverflow.com/questions/1186535/how-to-modify-a-specified-commit")
+
+        sys.exit(1)
+
+main()
+
