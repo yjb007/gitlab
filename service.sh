@@ -5,7 +5,7 @@ set -ex
 export SERVICE_NAME='pilipa-inside-git'
 export IMAGE_NAME='gitee/yujianbo'
 
-docker service rm pilipa-inside-git
+#docker service rm pilipa-inside-git
 
 sleep 2
 
