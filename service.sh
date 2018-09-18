@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+set -x
 
 export SERVICE_NAME='pilipa-inside-git'
 export IMAGE_NAME='gitee/yujianbo'
