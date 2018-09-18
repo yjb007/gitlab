@@ -8,5 +8,5 @@
 ### 修改访问Gitlab使用的域名,必须要在下面的位置进行设置
 ```
 vim service.sh
---hostname git.yujianbo.vip \
+--hostname git.local.com \
 ```
