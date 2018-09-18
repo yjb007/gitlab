@@ -11,7 +11,7 @@ sleep 2
 
 docker service create \
     --name "$SERVICE_NAME" \
-    --hostname git.yujianbo.vip \
+    --hostname git.local.com \
     --network my-network \
     --replicas 1 \
     --publish "mode=host,published=22,target=22" \
