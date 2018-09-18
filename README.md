@@ -10,3 +10,6 @@
 vim service.sh
 --hostname git.local.com \
 ```
+
+- **pattern.rb** 修改gitlab搜索时，可以最少使用两个中文字节进行搜索 
+- **custom_hooks/pre-receive.d/commit-message-check** 配置提交代码时对commit message时进行合规检测
