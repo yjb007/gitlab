@@ -1,4 +1,4 @@
-FROM gitlab/gitlab-ee:10.2.8-ee.0
+FROM gitlab/gitlab-ee:11.1.1-ce.0
 
 COPY custom_hooks/ /custom_hooks/
 RUN chown -R git:git /custom_hooks/ && chmod +x /custom_hooks/pre-receive.d/*
